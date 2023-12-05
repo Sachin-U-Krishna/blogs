@@ -3,8 +3,8 @@ const mysql = require('mysql')
 
 const tables = () => {
     users()
-    blogs()
     tags()
+    blogs()
 }
 
 const users = () => {
@@ -42,7 +42,7 @@ const blogs = () => {
     con.query("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = ?) as ans;", [process.env.DATABASE_NAME, "blogs"], async (err, res) => {
         let ans = await res[0].ans
         if (ans == 0) {
-            let sql = "CREATE TABLE blogs ( blog_id INT PRIMARY KEY AUTO_INCREMENT, title VARCHAR(255), content TEXT, user_id INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(user_id), INDEX idx_title (title) );";
+            let sql = "CREATE TABLE blogs ( blog_id INT PRIMARY KEY AUTO_INCREMENT, title VARCHAR(255), content TEXT, user_id INT, tag_id INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(user_id), FOREIGN KEY (tag_id) REFERENCES tags(tag_id), INDEX idx_title (title) );";
             con.query(sql, function (err, result) {
                 if (err) throw err;
                 console.log("Blogs Table created");

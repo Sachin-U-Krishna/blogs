@@ -10,7 +10,7 @@ var mysql = require("mysql");
 
 
 dotenv.config({
-	path: "./.env",
+    path: "./.env",
 });
 
 const port = process.env.PORT || 3000;
@@ -22,9 +22,9 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // Cross Origin Permissions
 var corsOptions = {
-	origin: "*",
-	methods: "GET",
-	optionsSuccessStatus: 200,
+    origin: "*",
+    methods: "GET",
+    optionsSuccessStatus: 200,
 };
 
 // Auto create tables
@@ -74,8 +74,7 @@ app.post('/verify', async (req, res) => {
     let hashedID = hash.cryptoDecrypt(await auth)
     let hashedPass = hash.cryptoDecrypt(await auth2)
     con.query("SELECT * from users where user_id=? and password=?", [hashedID, hashedPass], async (err, result) => {
-        const users = await result
-        if (result.length)
+        if (await result.length)
             res.send({ result: 1, message: 'authenticated', auth, auth2 });
         else
             res.send({ result: 0, message: 'failed' });
@@ -135,26 +134,68 @@ app.post('/signup', cors(corsOptions), async (req, res) => {
         }, async (err, result) => {
             if (err)
                 return res.send({ result: 0, error_code: 404, message: err.sqlMessage });
-			console.log(result)
-			return res.send({ result: 1, message: 'Success' });
+            console.log(result)
+            return res.send({ result: 1, message: 'Success' });
 
         })
     }
-    setTimeout(()=>disconnectdb(con),10000)
+    setTimeout(() => disconnectdb(con), 10000)
 })
+
+// get tag
+app.get('/get-tags', async (req, res) => {
+    const con = mysql.createConnection({
+        host: process.env.DATABASE_HOST,
+        user: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASS,
+        database: process.env.DATABASE_NAME
+    });
+
+    con.query("SELECT * from tags order by tag_id", async (err, result) => {
+        if (await result.length > 0)
+            res.send({ result: 1, tags: result });
+        else
+            res.send({ result: 0, message: 'failed' });
+    })
+    disconnectdb(con)
+})
+
+app.post('/create-blog', async (req, res) => {
+    const con = mysql.createConnection({
+        host: process.env.DATABASE_HOST,
+        user: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASS,
+        database: process.env.DATABASE_NAME
+    });
+
+    const { title, content, tagId, auth } = req.body
+    let deHashedID = hash.cryptoDecrypt(await auth)
+
+    con.query("INSERT into blogs SET ?", {
+        title,
+        content,
+        tag_id: tagId,
+        user_id: deHashedID
+    }, async (err, result) => {
+        if (err)
+            return res.send({ result: 0, error_code: 404, message: err.sqlMessage });
+        return res.send({ result: 1, message: 'Success' });
+    })
+    disconnectdb(con)
+});
 
 // Routes
 app.get("/", cors(corsOptions), (req, res) => {
-	res.status(200).send('<p>Node Running</p>');
+    res.status(200).send('<p>Node Running</p>');
 });
 
 // Error Route
 app.get("/*", (req, res) => {
-	res.status(404);
-	res.send({ Error: "Invalid Path" });
+    res.status(404);
+    res.send({ Error: "Invalid Path" });
 });
 
 // HTTP connection
 app.listen(port, () => {
-	console.log(`App running at port ${port}`)
+    console.log(`App running at port ${port}`)
 });
