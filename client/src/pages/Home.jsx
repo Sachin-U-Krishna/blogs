@@ -11,7 +11,6 @@ const Home = () => {
     const [sortOrder, setSortOrder] = useState("1")
     const [searchKey, setSearchKey] = useState("")
 
-
     const fetchBlogs = async () => {
         const res = await axios.get(import.meta.env.VITE_SERVER + "/get-blogs");
         if (res.data.result) {
@@ -77,22 +76,20 @@ const Home = () => {
     }
 
     const handleSearch = (searchTerm) => {
-        // If searchTerm is "false", reset to the original unfiltered state
+
         if (searchTerm === "false") {
             setBlogs(blogs2);
-            setSearchKey(""); // Reset searchKey to empty string
-            setTagId(false); // Reset tagId to false
+            setSearchKey("")
+            setTagId(false)
             return;
         }
 
-        // Set the searchKey state to the lowercased searchTerm
         const searchTermLower = searchTerm.toString().toLowerCase();
         setSearchKey(searchTermLower);
 
-        // Create a copy of the original unfiltered array
         let filteredBlogs = [...blogs2];
 
-        // Filter based on searchKey
+
         filteredBlogs = filteredBlogs.filter(blog => {
             const blogTitleLower = blog.title.toLowerCase();
 
@@ -107,7 +104,6 @@ const Home = () => {
             }
         });
 
-        // Sort based on sortOrder
         filteredBlogs = filteredBlogs.sort((a, b) => {
             const dateA = new Date(a.blog_date);
             const dateB = new Date(b.blog_date);
@@ -115,7 +111,6 @@ const Home = () => {
             return sortOrder === "1" ? dateA - dateB : dateB - dateA;
         });
 
-        // Update the state with the filtered and sorted array
         setBlogs(filteredBlogs);
     };
 
