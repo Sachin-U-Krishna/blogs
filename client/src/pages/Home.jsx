@@ -21,6 +21,13 @@ const Home = () => {
         }
     }
 
+    const resetFilter = () => {
+        setTagId(false)
+        setSearchKey("")
+        setSortOrder("1")
+        fetchBlogs()
+    }
+
     const [fetchTag, setFetchTag] = useState(false)
     const [tags, setTags] = useState({})
     const getData = async () => {
@@ -42,7 +49,6 @@ const Home = () => {
         else {
             return (
                 <>
-                    <option value="false">All</option>
                     {tags.map((e) => <option value={e.tag_name} key={e.tag_id}>{e.tag_name}</option>)}
                 </>
 
@@ -71,105 +77,117 @@ const Home = () => {
     }
 
     const handleSearch = (searchTerm) => {
-        if (searchTerm == false) {
-            setBlogs(blogs2)
+        // If searchTerm is "false", reset to the original unfiltered state
+        if (searchTerm === "false") {
+            setBlogs(blogs2);
+            setSearchKey(""); // Reset searchKey to empty string
+            setTagId(false); // Reset tagId to false
             return;
         }
-        setBlogs(blogs2)
 
+        // Set the searchKey state to the lowercased searchTerm
         const searchTermLower = searchTerm.toString().toLowerCase();
-        setSearchKey(searchTermLower)
+        setSearchKey(searchTermLower);
 
-        let filteredBlogs = blogs.filter(blog => {
+        // Create a copy of the original unfiltered array
+        let filteredBlogs = [...blogs2];
+
+        // Filter based on searchKey
+        filteredBlogs = filteredBlogs.filter(blog => {
             const blogTitleLower = blog.title.toLowerCase();
-            if (!tagId)
+
+            if (!tagId || tagId === "false") {
                 return blogTitleLower.includes(searchTermLower);
-            else {
+            } else {
                 const tagIdLower = tagId.toString().toLowerCase();
                 return (
                     blogTitleLower.includes(searchTermLower) &&
                     (blog.tag_name && blog.tag_name.toLowerCase() === tagIdLower)
                 );
-
             }
         });
+
+        // Sort based on sortOrder
         filteredBlogs = filteredBlogs.sort((a, b) => {
             const dateA = new Date(a.blog_date);
             const dateB = new Date(b.blog_date);
 
-
-            if (sortOrder == "1") {
-                return dateA - dateB;
-            } else {
-                return dateB - dateA;
-            }
+            return sortOrder === "1" ? dateA - dateB : dateB - dateA;
         });
+
+        // Update the state with the filtered and sorted array
         setBlogs(filteredBlogs);
     };
 
+
+
     const handleOrder = (e) => {
-        setSortOrder(e)
+        setSortOrder(e);
 
-        let filteredBlogs = blogs.sort((a, b) => {
-            const dateA = new Date(a.blog_date);
-            const dateB = new Date(b.blog_date);
+        let filteredBlogs = [...blogs2]; // Assuming blogs2 is the original unfiltered array
 
-            if (sortOrder == "1") {
-                return dateA - dateB;
-            } else {
-                return dateB - dateA;
-            }
-        });
-        setBlogs(filteredBlogs);
-    }
-
-    const handleTag = async (e) => {
-        setTagId(e)
-        let filteredBlogs;
-        if (e != false) {
-            filteredBlogs = blogs2.filter(blog => {
-                const tagIdLower = e.toString().toLowerCase();
-                const blogTitleLower = blog.title.toLowerCase();
-                if (!searchKey || searchKey == "") {
-                    return (
-                        blog.tag_name.toLowerCase() == tagIdLower
-                    )
-                }
-                else
-                    return (
-                        blogTitleLower.includes(searchKey) &&
-                        (blog.tag_name && blog.tag_name.toLowerCase() === tagIdLower)
-                    );
-
-            });
-            setBlogs(filteredBlogs)
-        }
-        else {
-            filteredBlogs = blogs2.filter(blog => {
-                const blogTitleLower = blog.title.toLowerCase();
-                if (!searchKey || searchKey == "")
-                    return (blog)
-                return (
-                    blogTitleLower.includes(searchKey)
-                );
-
-            });
-            setBlogs(filteredBlogs)
+        // Apply tag filtering if tagId is not false
+        if (tagId !== false) {
+            const tagIdLower = tagId.toString().toLowerCase();
+            filteredBlogs = filteredBlogs.filter(blog => (
+                blog.tag_name && blog.tag_name.toLowerCase() === tagIdLower
+            ));
         }
 
+        // Apply search filtering if searchKey exists
+        if (searchKey && searchKey.trim() !== "") {
+            const searchKeyLower = searchKey.toLowerCase();
+            filteredBlogs = filteredBlogs.filter(blog => (
+                blog.title.toLowerCase().includes(searchKeyLower)
+            ));
+        }
 
+        // Sort based on sortOrder
         filteredBlogs = filteredBlogs.sort((a, b) => {
             const dateA = new Date(a.blog_date);
             const dateB = new Date(b.blog_date);
 
-            if (sortOrder == "1") {
-                return dateA - dateB;
-            } else {
-                return dateB - dateA;
-            }
+            return e === "0" ? dateA - dateB : dateB - dateA;
         });
+
         setBlogs(filteredBlogs);
-    }
+    };
+
+
+    const handleTag = async (e) => {
+        setTagId(e);
+
+        // Create a copy of blogs2 to avoid modifying the original array
+        let filteredBlogs = [...blogs2];
+
+        if (e !== false) {
+            // If a tag is selected, filter based on the tag
+            const tagIdLower = e.toString().toLowerCase();
+            filteredBlogs = filteredBlogs.filter(blog => (
+                blog.tag_name && blog.tag_name.toLowerCase() === tagIdLower
+            ));
+        }
+
+        // Filter based on searchKey if it exists
+        if (searchKey && searchKey.trim() !== "") {
+            const searchKeyLower = searchKey.toLowerCase();
+            filteredBlogs = filteredBlogs.filter(blog => (
+                blog.title.toLowerCase().includes(searchKeyLower)
+            ));
+        }
+
+        // Sort based on sortOrder
+        filteredBlogs = filteredBlogs.sort((a, b) => {
+            const dateA = new Date(a.blog_date);
+            const dateB = new Date(b.blog_date);
+
+            return sortOrder === "1" ? dateA - dateB : dateB - dateA;
+        });
+
+        setBlogs(filteredBlogs);
+    };
+
+
 
 
     return (
@@ -183,7 +201,7 @@ const Home = () => {
                 <div className='row'>
                     <div className="col-6">
                         <select className="form-select" aria-label="Select any tag" id="blog-create-tag" value={tagId} required onChange={(e) => handleTag(e.target.value)} >
-                            <option disabled>Select a tag from the options</option>
+                            <option disabled value={false}>Tag</option>
                             {!fetchTag ? null :
                                 <Tags />
                             }
@@ -191,11 +209,14 @@ const Home = () => {
                     </div>
                     <div className="col-6">
                         <select className="form-select" aria-label="Select any tag" id="blog-create-tag" value={sortOrder} required onChange={(e) => handleOrder(e.target.value)} >
-                            <option disabled>Select a tag from the options</option>
-                            <option value="1">Latest</option>)
-                            <option value="0">Ascending</option>)
+                            <option disabled>Select sort by</option>
+                            <option value="1">Latest</option>
+                            <option value="0">Ascending</option>
                         </select>
                     </div>
+                </div>
+                <div className="w-100 d-flex justify-content-end mt-3">
+                    <button className='btn btn-danger' onClick={() => resetFilter()}>Reset</button>
                 </div>
             </div>
             <BlogPosts />
