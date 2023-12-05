@@ -3,8 +3,8 @@ const mysql = require('mysql')
 
 const tables = () => {
     users()
-    tags()
     blogs()
+    tags()
 }
 
 const users = () => {

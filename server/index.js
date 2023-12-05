@@ -31,7 +31,7 @@ var corsOptions = {
 tables.tables();
 
 // Login Route
-app.post('/login', cors(corsOptions), async (req, res) => {
+app.post('/login', async (req, res) => {
     const con = mysql.createConnection({
         host: process.env.DATABASE_HOST,
         user: process.env.DATABASE_USER,
@@ -83,7 +83,7 @@ app.post('/verify', async (req, res) => {
 })
 
 // signup
-app.post('/signup', cors(corsOptions), async (req, res) => {
+app.post('/signup', async (req, res) => {
     const con = mysql.createConnection({
         host: process.env.DATABASE_HOST,
         user: process.env.DATABASE_USER,
@@ -134,7 +134,6 @@ app.post('/signup', cors(corsOptions), async (req, res) => {
         }, async (err, result) => {
             if (err)
                 return res.send({ result: 0, error_code: 404, message: err.sqlMessage });
-            console.log(result)
             return res.send({ result: 1, message: 'Success' });
 
         })
@@ -184,8 +183,84 @@ app.post('/create-blog', async (req, res) => {
     disconnectdb(con)
 });
 
+app.post('/edit-blog', async (req, res) => {
+    const con = mysql.createConnection({
+        host: process.env.DATABASE_HOST,
+        user: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASS,
+        database: process.env.DATABASE_NAME
+    });
+
+    const { title, content, tagId, auth } = req.body
+    let deHashedID = hash.cryptoDecrypt(await auth)
+
+    con.query("Update blogs SET title=?, content=?, tag_id=? where user_id=?", [title, content, tagId, deHashedID], async (err, result) => {
+        if (err)
+            return res.send({ result: 0, error_code: 404, message: err.sqlMessage });
+        return res.send({ result: 1, message: 'Success' });
+    })
+    disconnectdb(con)
+});
+
+app.get('/get-blogs', async (req, res) => {
+    const con = mysql.createConnection({
+        host: process.env.DATABASE_HOST,
+        user: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASS,
+        database: process.env.DATABASE_NAME
+    });
+
+    con.query("SELECT u.username, b.title, t.tag_name, b.created_at as blog_date, b.content FROM blogs b JOIN users u ON b.user_id = u.user_id JOIN tags t ON b.tag_id = t.tag_id ORDER BY b.created_at DESC;", async (err, result) => {
+        if (await result.length > 0)
+            res.send({ result: 1, blogs: result });
+        else
+            res.send({ result: 0, message: 'failed' });
+    })
+    disconnectdb(con)
+})
+
+app.post('/delete-my-blog', async (req, res) => {
+    const con = mysql.createConnection({
+        host: process.env.DATABASE_HOST,
+        user: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASS,
+        database: process.env.DATABASE_NAME
+    });
+
+    const { auth, id } = req.body
+    let deHashedID = hash.cryptoDecrypt(await auth)
+
+    con.query("DELETE from blogs where blog_id=? and user_id=?", [id, deHashedID], async (err, result) => {
+        if (await result.affectedRows > 0)
+            res.send({ result: 1, message: 'success' });
+        else
+            res.send({ result: 0, message: 'failed' });
+    })
+    disconnectdb(con)
+})
+
+app.post('/get-my-blogs', async (req, res) => {
+    const con = mysql.createConnection({
+        host: process.env.DATABASE_HOST,
+        user: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASS,
+        database: process.env.DATABASE_NAME
+    });
+
+    const { auth } = req.body
+    let deHashedID = hash.cryptoDecrypt(await auth)
+
+    con.query("SELECT u.username, b.title, t.tag_name,t.tag_id, b.created_at as blog_date,b.blog_id, b.content FROM blogs b JOIN users u ON b.user_id = u.user_id JOIN tags t ON b.tag_id = t.tag_id WHERE u.user_id = ? ORDER BY b.created_at DESC;", [deHashedID], async (err, result) => {
+        if (await result.length > 0)
+            res.send({ result: 1, blogs: result });
+        else
+            res.send({ result: 0, message: 'failed' });
+    })
+    disconnectdb(con)
+})
+
 // Routes
-app.get("/", cors(corsOptions), (req, res) => {
+app.get("/", (req, res) => {
     res.status(200).send('<p>Node Running</p>');
 });
 

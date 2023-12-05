@@ -236,3 +236,18 @@
     --bs-btn-disabled-border-color: var(--primary);
     --bs-gradient: none
 }
+
+.blog-container{
+    position: relative;
+}
+
+.blog-container .delete-btn{
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+.blog-container .edit-btn{
+    position: absolute;
+    top: 10px;
+    right: 60px;
+}

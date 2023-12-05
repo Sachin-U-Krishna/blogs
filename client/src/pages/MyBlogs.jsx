@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react';
 import axios from 'axios';
 import Alert from '@mui/material/Alert';
 import { LoadingButton } from '@mui/lab'
+import MyBlogPost from '../components/MyBlogPost';
 
 const MyBlogs = () => {
 	const [content, setContent] = useState("")
@@ -22,9 +23,29 @@ const MyBlogs = () => {
 			setFetchTag(true)
 		}
 	}
+
+	const [getBlogs, setGetBlogs] = useState(false)
+	const [blogs, setBlogs] = useState({})
+
+	const fetchBlogs = async () => {
+		setGetBlogs(false)
+		const res = await axios.post(import.meta.env.VITE_SERVER + "/get-my-blogs",{
+			auth: localStorage.getItem("auth")
+		});
+		if (res.data.result) {
+			setBlogs(res.data.blogs)
+			setGetBlogs(true)
+			
+		}
+	}
+
+
+
 	useEffect(() => {
 		getData()
+		fetchBlogs()
 	}, [])
+
 
 	const validateContent = (e) => {
 		let content = e.target.value;
@@ -58,10 +79,8 @@ const MyBlogs = () => {
 	const validateBlogTitle = (e) => {
 		let title = e.target.value;
 
-		// Remove extra spaces between words
 		title = title.replace(/\s+/g, ' ');
 
-		// Remove leading and trailing whitespaces
 		title = title.trim();
 
 		var msg = "";
@@ -72,7 +91,7 @@ const MyBlogs = () => {
 
 		if (title.length > 200) {
 			msg += " Maximum 200 characters";
-			title = title.slice(0, 200);  // Trim to the first 200 characters
+			title = title.slice(0, 200);  
 		}
 
 		setBlogTitle(title);
@@ -123,6 +142,7 @@ const MyBlogs = () => {
 				setContent("")
 				setTagId(1)
 				setPostBlog(1)
+				fetchBlogs()
 			} else {
 				console.error("Blog creation failed:", response.data.message);
 				setPostBlog(0)
@@ -134,7 +154,27 @@ const MyBlogs = () => {
 		} finally {
 			setLoader(false);
 		}
+
 	};
+
+	function formatDate(timestamp) {
+		const date = new Date(timestamp);
+
+		const options = { day: 'numeric', month: 'numeric', year: 'numeric' };
+
+		const formattedDate = date.toLocaleDateString('en-GB', options);
+
+		return formattedDate;
+	}
+
+	const BlogPosts = () => {
+		if (getBlogs) {
+			return <>
+				{blogs.map((blog) => <MyBlogPost key={blog.blog_id} reRender={fetchBlogs} id={blog.blog_id} tag_id={blog.tag_id} username={blog.username} title={blog.title} tag={blog.tag_name} date={formatDate(blog.blog_date)} blogContent={blog.content} />)}
+			</>
+		}
+		return <></>
+	}
 
 
 	return (
@@ -184,6 +224,9 @@ const MyBlogs = () => {
 					</form>
 				</div>
 			</div>
+
+			<BlogPosts />
+
 		</div>
 	)
 }
