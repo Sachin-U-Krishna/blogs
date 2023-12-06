@@ -4,10 +4,8 @@ var cors = require("cors");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const tables = require("./tables");
-var { connectdb, disconnectdb } = require("./connection");
 var hash = require("./hash");
 var mysql = require("mysql");
-
 
 dotenv.config({
     path: "./.env",
@@ -30,15 +28,40 @@ var corsOptions = {
 // Auto create tables
 tables.tables();
 
-// Login Route
-app.post('/login', async (req, res) => {
-    const con = mysql.createConnection({
+var con;
+
+const handleDisconnect = () => {
+    con = mysql.createConnection({
         host: process.env.DATABASE_HOST,
         user: process.env.DATABASE_USER,
         password: process.env.DATABASE_PASS,
         database: process.env.DATABASE_NAME
     });
-    connectdb(con)
+
+
+    con.connect((err) => {
+        if (err) {
+            console.log('error when connecting to db:', err);
+            setTimeout(handleDisconnect, 2000);
+        }
+    });
+
+    con.on('error', (err) => {
+        console.log('db error', err);
+        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+            handleDisconnect();
+        } else {
+            throw err;
+        }
+    });
+}
+
+handleDisconnect();
+
+
+// Login Route
+app.post('/login', async (req, res) => {
+
     const { email, password } = req.body;
 
     con.query("SELECT * from users where email=?", [email], async (err, result) => {
@@ -60,16 +83,10 @@ app.post('/login', async (req, res) => {
         else
             res.send({ result: 0, message: 'Invalid email' });
     })
-    disconnectdb(con)
 })
 
 app.post('/verify', async (req, res) => {
-    const con = mysql.createConnection({
-        host: process.env.DATABASE_HOST,
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASS,
-        database: process.env.DATABASE_NAME
-    });
+
     const { auth, auth2 } = req.body
     let hashedID = hash.cryptoDecrypt(await auth)
     let hashedPass = hash.cryptoDecrypt(await auth2)
@@ -79,18 +96,11 @@ app.post('/verify', async (req, res) => {
         else
             res.send({ result: 0, message: 'failed' });
     })
-    disconnectdb(con)
 })
 
 // signup
 app.post('/signup', async (req, res) => {
-    const con = mysql.createConnection({
-        host: process.env.DATABASE_HOST,
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASS,
-        database: process.env.DATABASE_NAME
-    });
-    connectdb(con)
+
     const { full_name, email, password, username } = req.body;
 
     if (!full_name || !email || !password || !username)
@@ -138,17 +148,11 @@ app.post('/signup', async (req, res) => {
 
         })
     }
-    setTimeout(() => disconnectdb(con), 10000)
 })
 
 // get tag
 app.get('/get-tags', async (req, res) => {
-    const con = mysql.createConnection({
-        host: process.env.DATABASE_HOST,
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASS,
-        database: process.env.DATABASE_NAME
-    });
+
 
     con.query("SELECT * from tags order by tag_id", async (err, result) => {
         if (await result.length > 0)
@@ -156,16 +160,10 @@ app.get('/get-tags', async (req, res) => {
         else
             res.send({ result: 0, message: 'failed' });
     })
-    disconnectdb(con)
 })
 
 app.post('/create-blog', async (req, res) => {
-    const con = mysql.createConnection({
-        host: process.env.DATABASE_HOST,
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASS,
-        database: process.env.DATABASE_NAME
-    });
+
 
     const { title, content, tagId, auth } = req.body
     let deHashedID = hash.cryptoDecrypt(await auth)
@@ -180,16 +178,10 @@ app.post('/create-blog', async (req, res) => {
             return res.send({ result: 0, error_code: 404, message: err.sqlMessage });
         return res.send({ result: 1, message: 'Success' });
     })
-    disconnectdb(con)
 });
 
 app.post('/edit-blog', async (req, res) => {
-    const con = mysql.createConnection({
-        host: process.env.DATABASE_HOST,
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASS,
-        database: process.env.DATABASE_NAME
-    });
+
 
     const { title, content, tagId, auth } = req.body
     let deHashedID = hash.cryptoDecrypt(await auth)
@@ -199,16 +191,10 @@ app.post('/edit-blog', async (req, res) => {
             return res.send({ result: 0, error_code: 404, message: err.sqlMessage });
         return res.send({ result: 1, message: 'Success' });
     })
-    disconnectdb(con)
 });
 
 app.get('/get-blogs', async (req, res) => {
-    const con = mysql.createConnection({
-        host: process.env.DATABASE_HOST,
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASS,
-        database: process.env.DATABASE_NAME
-    });
+
 
     con.query("SELECT u.username, b.title, t.tag_name, b.created_at as blog_date, b.content FROM blogs b JOIN users u ON b.user_id = u.user_id JOIN tags t ON b.tag_id = t.tag_id ORDER BY b.created_at DESC;", async (err, result) => {
         if (await result.length > 0)
@@ -216,16 +202,10 @@ app.get('/get-blogs', async (req, res) => {
         else
             res.send({ result: 0, message: 'failed' });
     })
-    disconnectdb(con)
 })
 
 app.post('/delete-my-blog', async (req, res) => {
-    const con = mysql.createConnection({
-        host: process.env.DATABASE_HOST,
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASS,
-        database: process.env.DATABASE_NAME
-    });
+
 
     const { auth, id } = req.body
     let deHashedID = hash.cryptoDecrypt(await auth)
@@ -236,16 +216,10 @@ app.post('/delete-my-blog', async (req, res) => {
         else
             res.send({ result: 0, message: 'failed' });
     })
-    disconnectdb(con)
 })
 
 app.post('/get-my-blogs', async (req, res) => {
-    const con = mysql.createConnection({
-        host: process.env.DATABASE_HOST,
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASS,
-        database: process.env.DATABASE_NAME
-    });
+
 
     const { auth } = req.body
     let deHashedID = hash.cryptoDecrypt(await auth)
@@ -256,7 +230,6 @@ app.post('/get-my-blogs', async (req, res) => {
         else
             res.send({ result: 0, message: 'failed' });
     })
-    disconnectdb(con)
 })
 
 // Routes
