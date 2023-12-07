@@ -183,10 +183,10 @@ app.post('/create-blog', async (req, res) => {
 app.post('/edit-blog', async (req, res) => {
 
 
-    const { title, content, tagId, auth } = req.body
+    const { title, content, tagId, auth, id } = req.body
     let deHashedID = hash.cryptoDecrypt(await auth)
 
-    con.query("Update blogs SET title=?, content=?, tag_id=? where user_id=?", [title, content, tagId, deHashedID], async (err, result) => {
+    con.query("Update blogs SET title=?, content=?, tag_id=? where user_id=? and blog_id=?", [title, content, tagId, deHashedID, id], async (err, result) => {
         if (err)
             return res.send({ result: 0, error_code: 404, message: err.sqlMessage });
         return res.send({ result: 1, message: 'Success' });
@@ -196,7 +196,7 @@ app.post('/edit-blog', async (req, res) => {
 app.get('/get-blogs', async (req, res) => {
 
 
-    con.query("SELECT u.username, b.title, t.tag_name, b.created_at as blog_date, b.content FROM blogs b JOIN users u ON b.user_id = u.user_id JOIN tags t ON b.tag_id = t.tag_id ORDER BY b.created_at DESC;", async (err, result) => {
+    con.query("SELECT u.username, b.title, t.tag_name, b.blog_id, b.created_at as blog_date, b.content FROM blogs b JOIN users u ON b.user_id = u.user_id JOIN tags t ON b.tag_id = t.tag_id ORDER BY b.created_at DESC;", async (err, result) => {
         if (await result.length > 0)
             res.send({ result: 1, blogs: result });
         else

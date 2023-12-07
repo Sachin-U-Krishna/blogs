@@ -152,17 +152,16 @@ const MyBlogPost = ({ username, title, tag, tag_id, date, blogContent, id, reRen
                     title: blogTitle,
                     content,
                     tagId,
+                    id: id,
                 }
             );
-
-            console.log(response.data.result)
 
             if (response.data.result) {
                 setBlogTitle("")
                 setContent("")
                 setTagId(1)
                 setPostBlog(1)
-                setTimeout(() => { setOpen(false); reRender() }, 2000)                
+                setTimeout(() => { setOpen(false); reRender() }, 2000)
             } else {
                 console.error("Blog creation failed:", response.data.message);
                 setPostBlog(0)
